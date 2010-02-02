@@ -1,0 +1,150 @@
+<assembly>
+  <formats>
+    <format>zip</format>
+  </formats>
+  
+  <dependencySets>
+
+    <!-- Include the main sgs-server jar
+	 Strip out the version number to simplify usage -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server:jar</include>
+      </includes>
+      <outputDirectory>lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+      <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
+    </dependencySet>
+
+    <!-- Include the transitive jar files -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-shared:jar</include>
+	<include>org.apache.mina:mina-core</include>
+	<include>org.slf4j:slf4j-api</include>
+	<include>org.slf4j:slf4j-jdk14</include>
+	<include>com.projectdarkstar.ext.berkeleydb:db:jar</include>
+      </includes>
+      <outputDirectory>lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+
+    <!-- Include the sgs-server source files -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server:jar:sources</include>
+      </includes>
+      <outputDirectory>src</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Include the sgs-shared source files -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-shared:jar:sources</include>
+      </includes>
+      <outputDirectory>src</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Unpack the tutorial component -->
+    <dependencySet>
+      <includes>       
+	<include>com.projectdarkstar.server:sgs-tutorial-server-dist:zip</include>
+      </includes>
+      <unpack>true</unpack>
+      <outputDirectory>.</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Unpack the server-api artifact of the sgs-javadoc module
+	 into the doc directory -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server-javadoc:jar:api</include>
+      </includes>
+      <unpack>true</unpack>
+      <unpackOptions>
+	<excludes>
+	  <exclude>META-INF</exclude>
+	  <exclude>META-INF/*</exclude>
+	  <exclude>options</exclude>
+	</excludes>
+      </unpackOptions>
+      <outputDirectory>doc</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+  </dependencySets>
+  
+  
+  <fileSets>
+
+    <!-- Include all of the Berkeley DB binaries except for the Windows
+	 DLL, jar, and license file-->
+    <fileSet>
+      <directory>${project.build.directory}/bdb-${bdb.version}</directory>
+      <outputDirectory>lib/bdb-natives</outputDirectory>
+      <excludes>
+	<exclude>db.jar</exclude>
+	<exclude>LICENSE</exclude>
+	<exclude>win32-x86/libdb_java45.dll</exclude>
+      </excludes>
+    </fileSet>
+
+    <!-- Include the Windows DLL from the Berkeley DB binaries, and make
+	 it executable -->
+    <fileSet>
+      <directory>${project.build.directory}/bdb-${bdb.version}</directory>
+      <outputDirectory>lib/bdb-natives</outputDirectory>
+      <includes>
+	<include>win32-x86/libdb_java45.dll</include>
+      </includes>
+      <fileMode>755</fileMode>
+    </fileSet>
+
+    <!-- Include the main distribution license and readme files -->
+    <fileSet>
+      <directory>src/main/etc/</directory>
+      <excludes>
+        <exclude>README</exclude>
+        <exclude>NOTICE.txt</exclude>
+        <exclude>bin/sgs.sh</exclude>
+      </excludes>
+      <outputDirectory>.</outputDirectory>
+    </fileSet>
+
+    <!-- Include filtered README and NOTICE files -->
+    <fileSet>
+      <directory>src/main/etc/</directory>
+      <includes>
+        <include>README</include>
+        <include>NOTICE.txt</include>
+      </includes>
+      <outputDirectory>.</outputDirectory>
+      <filtered>true</filtered>
+      <fileMode>644</fileMode>
+    </fileSet>
+
+  </fileSets>
+  
+
+  <files>
+    <!-- This shouldn't be necessary but there's a bug in the Maven
+	 assembly plugin that doesn't preserve file permissions.
+	 This includes the bootstrapper with the execute bit set -->
+    <file>
+      <source>src/main/etc/bin/sgs.sh</source>
+      <outputDirectory>bin</outputDirectory>
+      <fileMode>755</fileMode>
+    </file>
+
+    <!-- Include the LICENSE from the Berkeley DB binaries -->
+    <file>
+      <source>${project.build.directory}/bdb-${bdb.version}/LICENSE</source>
+      <outputDirectory>license</outputDirectory>
+      <destName>LICENSE.bdb</destName>
+      <fileMode>644</fileMode>
+    </file>
+  </files>
+  
+</assembly>

@@ -1,0 +1,26 @@
+#! /bin/sh
+# list-install -- List the contents of an installation in a canonical
+# way for use in checking a new installation for regressions or
+# unexpected changes.
+
+# Check usage
+if [ $# -ne 1 ]; then
+    echo Usage: $0 install_directory;
+    exit 1;
+fi
+
+# Change to the installation directory
+cd "$1"
+
+# Suppress file expansion so that it can happen within the find command
+set -f
+
+# List the installation files
+echo root:
+find . -print | sort
+
+# List the contents of JAR files
+for jar in `find . -name *.jar -print | sort`; do
+    echo $jar\:
+    jar tf $jar | sort
+done

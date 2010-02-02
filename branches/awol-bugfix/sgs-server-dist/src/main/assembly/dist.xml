@@ -1,0 +1,146 @@
+<assembly>
+  <formats>
+    <format>zip</format>
+  </formats>
+  
+  <dependencySets>
+
+    <!-- Include the sgs-boot bootstrapper -->
+    <dependencySet>
+      <includes>
+        <include>com.projectdarkstar.server:sgs-boot</include>
+	<include>com.projectdarkstar.server:sgs-stop</include>
+      </includes>
+      <outputDirectory>bin</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+      <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
+    </dependencySet>
+
+    <!-- Include the sgs-server jar files required in the lib directory -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server:jar</include>
+	<include>com.projectdarkstar.server:sgs-shared:jar</include>
+	<include>com.projectdarkstar.server:sgs-server-api:jar</include>
+	<include>com.projectdarkstar.server:sgs-server-internal-api:jar</include>
+	<include>com.projectdarkstar.ext.berkeleydb:db:jar</include>
+	<include>com.sleepycat:je:jar</include>
+        <include>net.sf.jung:jung-graph-impl:jar</include>
+      </includes>
+      <outputDirectory>lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+
+    <!-- Include the sgs-server source files -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server:jar:sources</include>
+	<include>com.projectdarkstar.server:sgs-shared:jar:sources</include>
+	<include>com.projectdarkstar.server:sgs-server-api:jar:sources</include>
+	<include>com.projectdarkstar.server:sgs-server-internal-api:jar:sources</include>
+      </includes>
+      <outputDirectory>src</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+
+    <!-- Unpack the tutorial component -->
+    <dependencySet>
+      <includes>       
+	<include>com.projectdarkstar.server:sgs-tutorial-server-dist:zip</include>
+      </includes>
+      <unpack>true</unpack>
+      <outputDirectory></outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Unpack the server-api artifact of the sgs-javadoc module
+	 into the doc directory -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server-javadoc:jar:api</include>
+      </includes>
+      <unpack>true</unpack>
+      <unpackOptions>
+	<excludes>
+	  <exclude>META-INF</exclude>
+	  <exclude>META-INF/*</exclude>
+	  <exclude>options</exclude>
+	</excludes>
+      </unpackOptions>
+      <outputDirectory>doc</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+  </dependencySets>
+  
+  
+  <fileSets>
+
+    <!-- Include the main distribution license and readme files -->
+    <fileSet>
+      <directory>${basedir}/src/main/etc</directory>
+      <excludes>
+        <exclude>README</exclude>
+        <exclude>NOTICE.txt</exclude>
+        <exclude>license/NOTICE-gpl</exclude>
+      </excludes>
+      <outputDirectory></outputDirectory>
+    </fileSet>
+
+    <!-- Filter the README and NOTICE files to replace parameters -->
+    <fileSet>
+      <directory>${basedir}/src/main/etc</directory>
+      <includes>
+        <include>README</include>
+        <include>NOTICE.txt</include>
+        <include>license/NOTICE-gpl</include>
+      </includes>
+      <filtered>true</filtered>
+      <outputDirectory></outputDirectory>
+    </fileSet>
+
+    <!-- Include all of the Berkeley DB binaries except for the Windows
+	 DLL, db.jar, LICENSE, and mac PPC binaries -->
+    <fileSet>
+      <directory>${project.build.directory}/bdb-${bdb.version}</directory>
+      <outputDirectory>lib/natives</outputDirectory>
+      <excludes>
+	<exclude>macosx-ppc/</exclude>
+	<exclude>db.jar</exclude>
+	<exclude>LICENSE</exclude>
+	<exclude>win32-x86/libdb_java45.dll</exclude>
+      </excludes>
+    </fileSet>
+
+    <!-- Include the Windows DLL from the Berkeley DB binaries, and make
+	 it executable -->
+    <fileSet>
+      <directory>${project.build.directory}/bdb-${bdb.version}</directory>
+      <outputDirectory>lib/natives</outputDirectory>
+      <includes>
+	<include>win32-x86/libdb_java45.dll</include>
+      </includes>
+      <fileMode>755</fileMode>
+    </fileSet>
+
+    <!-- This is here just to get an empty deploy directory -->
+    <fileSet>
+      <directory>${java.io.tmpdir}</directory>
+      <outputDirectory>deploy</outputDirectory>
+      <excludes>
+        <exclude>**/*</exclude>
+      </excludes>
+    </fileSet>
+
+    <!-- This is here just to get an empty ext directory -->
+    <fileSet>
+      <directory>${java.io.tmpdir}</directory>
+      <outputDirectory>ext</outputDirectory>
+      <excludes>
+        <exclude>**/*</exclude>
+      </excludes>
+    </fileSet>
+
+  </fileSets>
+
+  
+</assembly>

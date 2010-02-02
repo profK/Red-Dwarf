@@ -1,0 +1,71 @@
+/*
+ * Copyright 2007 Sun Microsystems, Inc. All rights reserved
+ */
+
+package com.sun.sgs.client;
+
+/**
+ * Identifies a session between client and server.
+ * <p>
+ * Session identifiers are constant; their values cannot be changed
+ * after they are created.
+ */
+public abstract class SessionId {
+
+    /**
+     * Enables construction of a session identifier (for subclasses).
+     */
+    protected SessionId() {
+    }
+
+    /**
+     * Returns a session identifier whose representation is contained in the
+     * specified byte array.
+     *
+     * @param id a byte array containing a session identifier
+     * @return a session identifier
+     * @throws IllegalArgumentException if the specified byte array does not
+     *         contain a valid representation of a {@code SessionId}
+     */
+    public static SessionId fromBytes(byte[] id) {
+        return new com.sun.sgs.impl.client.simple.SimpleSessionId(id);
+    }
+
+    /**
+     * Returns a byte array containing the representation of this session
+     * identifier.
+     * <p>
+     * The returned byte array must not be modified; if the byte array
+     * is modified, the client framework may behave unpredictably.
+     *
+     * @return a byte array containing the representation of this
+     *         session identifier
+     */
+    public abstract byte[] toBytes();
+
+    /**
+     * Compares this session identifier to the specified object.
+     * The result is {@code true} if and only if the argument is not
+     * {@code null} and is a {@code SessionId} object that represents
+     * the same session identifier as this object.
+     *
+     * @param obj the object to compare this {@code SessionId} against
+     *
+     * @return {@code true} if the given object represents a 
+     *         {@code SessionId} equivalent to this session identifier,
+     *         {@code false} otherwise
+     */
+    @Override
+    public abstract boolean equals(Object obj);
+
+    /**
+     * Returns a hash code for this session identifier.
+     *
+     * @return a hash code value for this object
+     * 
+     * @see Object#hashCode()
+     */
+    @Override
+    public abstract int hashCode();
+
+}

@@ -1,0 +1,789 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="sgs" default="build" basedir=".">
+
+  <description>
+    Builds the Sun Game Server project
+  </description>
+
+  <!-- First load the user's properties -->
+  <property name="user.properties.file"
+	    location="${user.home}/.build.properties"/>
+  <property file="${user.properties.file}"/>
+
+  <!-- VARIABLE DEFINITIONS -->
+
+  <!-- Build location -->
+  <property name="build.dir" location="build"/>
+  <property name="lib.dir" location="lib"/>
+
+  <!-- Values for controlling compilation -->
+  <property name="javac.source" value="1.5"/>
+  <property name="javac.compilerargs"
+	    value="-Xlint"/>
+
+  <!-- Version information -->
+  <property name="project.release" value="0.9"/>
+
+  <!-- Values for the JavaDocs -->
+  <property name="project.name" value="Sun Game Server"/>
+  <tstamp>
+    <format property="project.build" pattern="MMMM-d-yyyy" locale="en"/>
+  </tstamp>
+  <property name="jdk.doc.api.url"
+	    value="http://java.sun.com/j2se/1.5/docs/api"/>
+  <property name="jdk.package.list" value="etc/jdk5.0_package_list"/>
+  <property name="mina.doc.api.url"
+            value="http://mina.apache.org/report/1.1/apidocs"/>
+  <property name="mina.package.list" value="etc/mina1.1_package_list"/>
+
+  <property name="apidoc.server.zip"
+            location="${build.dir}/sgs-server-apidoc.zip"/>
+  <property name="apidoc.client.zip"
+            location="${build.dir}/sgs-client-apidoc.zip"/>
+
+  <!-- Values for programming style checks -->
+  <import file="${checkstyle.dir}/checkstyle_task.xml" optional="true"/>
+
+  <!-- Values for testing -->
+  <property name="test.logging" location="test/test.logging"/>
+  <property name="test.assertions" value="-enableassertions"/>
+  <property name="test.jvm.args" value="${test.assertions}"/>
+  <property name="test.formatter.type" value="plain"/>
+  <property name="test.showoutput" value="false"/>
+  <property name="test.include" value="**/Test*.java"/>
+
+  <!-- Directory containing Berkeley DB libraries -->
+  <!-- The caller should set the bdb.lib.dir property to a directory
+       containing the full set of JAR and native library files for the
+       current platform -->
+  <!-- The caller should set the bdb.builds.dir property to a directory
+       containing builds of Berkeley DB for all of the platforms if
+       calling the dist-server task. -->
+
+  <!-- Shared code class path -->
+  <path id="shared.classpath">
+    <pathelement location="${build.dir}/classes/shared"/>
+    <pathelement location="${lib.dir}/mina-core-1.1.jar"/>
+    <pathelement location="${lib.dir}/slf4j-jdk14-1.2.jar"/>
+    <pathelement location="${lib.dir}/slf4j-api-1.2.jar"/>
+  </path>
+
+  <!-- Server class path -->
+  <path id="server.classpath">
+    <pathelement location="${build.dir}/classes/server"/>
+    <pathelement location="${bdb.lib.dir}/db.jar"/>
+    <path refid="shared.classpath"/>
+  </path>
+
+  <!-- Client class path -->
+  <path id="client.classpath">
+    <pathelement location="${build.dir}/classes/client"/>
+    <path refid="shared.classpath"/>
+  </path>
+
+  <!-- TARGET DEFINITIONS -->
+
+  <!-- Builds everything -->
+  <target name="all" depends="build, jar, javadoc, dist, checkstyle, test"
+	  description="Builds everything"/>
+
+  <!-- Builds a debug version of the complete project -->
+  <target name="build" depends="build-server,build-client"
+	  description="Builds code"/>
+
+  <!-- Builds the shared code -->
+  <target name="-build-shared">
+    <mkdir dir="${build.dir}/classes/shared"/>
+    <depend srcdir="j2se"
+	    destdir="${build.dir}/classes/shared"
+	    cache="${build.dir}/depend"
+	    closure="true"/>
+    <javac includeAntRuntime="no" debug="on" deprecation="on"
+           srcdir="src/shared/j2se" destdir="${build.dir}/classes/shared"
+           classpathref="shared.classpath" source="${javac.source}">
+      <compilerarg value="${javac.compilerargs}"/>
+    </javac>
+  </target>
+
+  <!-- Builds the server -->
+  <target name="build-server" depends="-build-shared"
+      description="Builds server code">
+    <fail unless="bdb.lib.dir"
+	  message="The bdb.lib.dir property must be set"/>
+    <mkdir dir="${build.dir}/classes/server"/>
+    <depend srcdir="j2se"
+	    destdir="${build.dir}/classes/server"
+	    cache="${build.dir}/depend"
+	    closure="true"/>
+    <javac includeAntRuntime="no" debug="on" deprecation="on"
+           srcdir="src/server/j2se" destdir="${build.dir}/classes/server"
+           classpathref="server.classpath" source="${javac.source}">
+      <compilerarg value="${javac.compilerargs}"/>
+    </javac>
+  </target>
+
+  <!-- Builds the client -->
+  <target name="build-client" depends="-build-shared"
+	  description="Builds client code">
+    <mkdir dir="${build.dir}/classes/client"/>
+    <depend srcdir="j2se"
+	    destdir="${build.dir}/classes/client"
+	    cache="${build.dir}/depend"
+	    closure="true"/>
+    <javac includeAntRuntime="no" debug="on" deprecation="on"
+           srcdir="src/client/j2se" destdir="${build.dir}/classes/client"
+           classpathref="client.classpath" source="${javac.source}">
+      <compilerarg value="${javac.compilerargs}"/>
+    </javac>
+  </target>
+
+  <!-- Removes all built files and all ~ files -->
+  <target name="clean" description="Removes all built files and all ~ files">
+    <delete dir="${build.dir}"/>
+    <delete>
+      <fileset dir="." defaultexcludes="no" includes="**/*~"/>
+    </delete>
+  </target>
+
+  <!-- Builds the documentation -->
+  <target name="doc" depends="javadoc" description="Builds documentation"/>
+
+  <!-- Build the JavaDoc from the source -->
+  <target name="javadoc" depends="javadoc-api,javadoc-internal"
+	  description="Builds javadoc"/>
+
+  <target name="javadoc-internal" depends="javadoc-server,javadoc-client"
+	  description="Builds internal (full) javadoc"/>
+
+  <target name="javadoc-api" depends="javadoc-api-server,javadoc-api-client"
+	  description="Builds public API javadoc"/>
+
+  <!-- Build the internal server JavaDoc -->
+  <target name="javadoc-server" depends="build-server, project-version"
+	  description="Builds internal (full) server javadoc">
+    <javadoc sourcepath="src/server/j2se:src/shared/j2se"
+             destdir="${build.dir}/javadoc/server"
+             classpathref="server.classpath"
+             packagenames="com.sun.*"
+             overview="src/server/j2se/overview.html"
+             windowtitle="${project.name}" doctitle="${project.name}"
+	     author="no">
+      <link href="${jdk.doc.api.url}"
+	    offline="true"
+	    packagelistLoc="${jdk.package.list}"/>
+      <link href="${mina.doc.api.url}"
+            offline="true"
+            packagelistLoc="${mina.package.list}"/>
+      <footer>
+        <![CDATA[<font size="-1">Sun Game Server, Version
+        ${project.version}<br>${project.build}</font>]]>
+      </footer>
+      <bottom>
+        <![CDATA[<font size="-1">Copyright &copy; 2007 Sun Microsystems,
+        Inc. All rights reserved<br>THIS PRODUCT CONTAINS CONFIDENTIAL
+        INFORMATION AND TRADE SECRETS OF SUN MICROSYSTEMS, INC. USE,
+        DISCLOSURE OR REPRODUCTION IS PROHIBITED WITHOUT THE PRIOR
+        EXPRESS WRITTEN PERMISSION OF SUN MICROSYSTEMS, INC. </font>]]>
+      </bottom>
+    </javadoc>
+  </target>
+
+  <!-- Build the internal client JavaDoc -->
+  <target name="javadoc-client" depends="build-client, project-version"
+	  description="Builds internal (full) client javadoc">
+    <javadoc sourcepath="src/client/j2se"
+             destdir="${build.dir}/javadoc/client"
+             classpathref="client.classpath"
+             packagenames="com.sun.*"
+             overview="src/client/j2se/overview.html"
+             windowtitle="${project.name}" doctitle="${project.name}"
+	     author="no">
+      <link href="${jdk.doc.api.url}"
+	    offline="true"
+	    packagelistLoc="${jdk.package.list}"/>
+      <link href="${mina.doc.api.url}"
+            offline="true"
+            packagelistLoc="${mina.package.list}"/>
+      <footer>
+        <![CDATA[<font size="-1">Sun Game Server, Version
+        ${project.version}<br>${project.build}</font>]]>
+      </footer>
+      <bottom>
+        <![CDATA[<font size="-1">Copyright &copy; 2007 Sun Microsystems,
+        Inc. All rights reserved<br>THIS PRODUCT CONTAINS CONFIDENTIAL
+        INFORMATION AND TRADE SECRETS OF SUN MICROSYSTEMS, INC. USE,
+        DISCLOSURE OR REPRODUCTION IS PROHIBITED WITHOUT THE PRIOR
+        EXPRESS WRITTEN PERMISSION OF SUN MICROSYSTEMS, INC. </font>]]>
+      </bottom>
+    </javadoc>
+  </target>
+
+  <!-- Build the public Application API JavaDoc -->
+  <target name="javadoc-api-server" depends="build-server, project-version"
+	  description="Builds public server application API javadoc">
+    <javadoc sourcepath="src/server/j2se"
+             destdir="${build.dir}/javadoc/apidoc/sgs-server-apidoc"
+             classpathref="server.classpath"
+             packagenames="com.sun.sgs.app.*"
+             overview="src/server/j2se/overview.html"
+             windowtitle="${project.name} Server API"
+             doctitle="${project.name} Server API"
+             public="true" author="no">
+      <link href="${jdk.doc.api.url}"
+	    offline="true"
+	    packagelistLoc="${jdk.package.list}"/>
+      <link href="${mina.doc.api.url}"
+            offline="true"
+            packagelistLoc="${mina.package.list}"/>
+      <footer>
+        <![CDATA[<font size="-1">Sun Game Server, Version
+        ${project.version}<br>${project.build}</font>]]>
+      </footer>
+      <bottom>
+        <![CDATA[<font size="-1">Copyright &copy; 2007 Sun Microsystems,
+        Inc. All rights reserved</font>]]>
+      </bottom>
+    </javadoc>
+  </target>
+
+  <!-- Build the public Client API JavaDoc -->
+  <target name="javadoc-api-client" depends="build-client, project-version"
+	  description="Builds public client API javadoc">
+    <javadoc sourcepath="src/client/j2se"
+             destdir="${build.dir}/javadoc/apidoc/sgs-client-apidoc"
+             classpathref="client.classpath"
+             packagenames="com.sun.sgs.client,com.sun.sgs.client.simple"
+             overview="src/client/j2se/overview.html"
+             windowtitle="${project.name} Client API"
+             doctitle="${project.name} Client API"
+             public="true" author="no">
+      <link href="${jdk.doc.api.url}"
+	    offline="true"
+	    packagelistLoc="${jdk.package.list}"/>
+      <link href="${mina.doc.api.url}"
+            offline="true"
+            packagelistLoc="${mina.package.list}"/>
+      <footer>
+        <![CDATA[<font size="-1">Sun Game Server, Version
+        ${project.version}<br>${project.build}</font>]]>
+      </footer>
+      <bottom>
+        <![CDATA[<font size="-1">Copyright &copy; 2007 Sun Microsystems,
+        Inc. All rights reserved</font>]]>
+      </bottom>
+    </javadoc>
+  </target>
+
+  <!-- Builds the API javadoc zip files -->
+  <target name="apidoc" depends="zip-apidoc-server,zip-apidoc-client"
+	  description="Builds API javadoc zip files"/>
+
+  <!-- Builds the app API javadoc zip file -->
+  <target name="zip-apidoc-server" depends="javadoc-api-server"
+	  description="Builds app API javadoc zip file">
+    <zip destfile="${apidoc.server.zip}"
+          basedir="${build.dir}/javadoc/apidoc"
+          includes="sgs-server-apidoc/**"/>
+  </target>
+
+  <!-- Builds the client API javadoc zip file -->
+  <target name="zip-apidoc-client" depends="javadoc-api-client"
+	  description="Builds client API javadoc zip file">
+    <zip destfile="${apidoc.client.zip}"
+          basedir="${build.dir}/javadoc/apidoc"
+          includes="sgs-client-apidoc/**"/>
+  </target>
+
+  <!-- Builds files for distribution -->
+  <target name="dist"
+	  depends="dist-client, dist-server, dist-tutorial, javadoc-api,
+		   project-version"
+	  description="Builds files for distribution">
+    <copy todir="${build.dir}/sgs/doc/sgs-client-api">
+      <fileset dir="${build.dir}/javadoc/apidoc/sgs-client-apidoc/"/>
+    </copy>
+    <copy todir="${build.dir}/sgs/doc/sgs-api">
+      <fileset dir="${build.dir}/javadoc/apidoc/sgs-server-apidoc/"/>
+    </copy>
+    <!-- <tar destfile="${build.dir}/sgs-${project.version}.tar.gz"
+        compression="gzip">
+      <tarfileset dir="${build.dir}" includes="sgs/**" excludes="sgs/sgs.sh"/>
+      <tarfileset dir="${build.dir}" includes="sgs/sgs.sh" mode="755"/>
+    </tar> -->
+    <zip destfile="${build.dir}/sgs-${project.version}.zip">
+      <zipfileset dir="${build.dir}" includes="sgs/**" excludes="sgs/sgs.sh"/>
+      <zipfileset dir="${build.dir}" includes="sgs/sgs.sh" filemode="755"/>
+    </zip>
+  </target>
+
+  <!-- Builds client files for distribution -->
+  <target name="dist-client" depends="jar-client"
+	  description="Builds client files for distribution">
+    <copy todir="${build.dir}/sgs/lib" file="${build.dir}/lib/sgs-client.jar"/>
+  </target>
+
+  <!-- Builds server files for distribution -->
+  <target name="dist-server" depends="jar-server, dist-bdb"
+	  description="Builds server files for distribution">
+    <copy todir="${build.dir}/sgs">
+      <fileset dir="etc"
+	       includes="sgs.*,
+			 sgs-*.properties,
+			 LICENSE.pdf,
+			 THIRDPARTYLICENSE.pdf,
+			 README"/>
+    </copy>
+    <chmod file="${build.dir}/sgs/sgs.sh" perm="a+x"/>
+    <copy todir="${build.dir}/sgs/lib">
+      <fileset file="${build.dir}/lib/sgs.jar"/>
+      <fileset dir="lib" includes="mina-*.jar, slf4j-*.jar"/>
+    </copy>
+  </target>
+
+  <!-- Builds files for distributing Berkeley DB -->
+  <target name="dist-bdb"
+	  description="Builds files for distributing Berkeley DB">
+    <fail unless="bdb.builds.dir"
+	  message="The bdb.builds.dir property must be set"/>
+    <copy todir="${build.dir}/sgs/lib/bdb"
+	  file="${bdb.builds.dir}/ppc/lib/db.jar"/>
+    <copy todir="${build.dir}/sgs/lib/bdb/macosx-ppc">
+      <fileset dir="${bdb.builds.dir}/ppc/lib"
+	       includes="libdb-?.?.dylib,
+			 libdb_java-?.?.jnilib"/>
+    </copy>
+    <copy todir="${build.dir}/sgs/lib/bdb/solaris-x86">
+      <fileset dir="${bdb.builds.dir}/i86pc/lib"
+	       includes="libdb-?.?.so,
+			 libdb_java-?.?.so"/>
+    </copy>
+    <copy todir="${build.dir}/sgs/lib/bdb/solaris-sparc">
+      <fileset dir="${bdb.builds.dir}/sun4/lib"
+	       includes="libdb-?.?.so,
+			 libdb_java-?.?.so"/>
+    </copy>
+    <copy todir="${build.dir}/sgs/lib/bdb/win32-x86/">
+      <fileset dir="${bdb.builds.dir}/win32/Release"
+	       includes="libdb_java??.dll"/>
+    </copy>
+  </target>
+
+  <!-- Builds the jar files for the project classes -->
+  <target name="jar" depends="jar-client, jar-server, jar-tutorial"
+	  description="Builds JAR files"/>
+
+  <!-- Builds the client JAR file -->
+  <target name="jar-client" depends="build-client"
+	  description="Builds the client JAR file">
+    <mkdir dir="${build.dir}/lib"/>
+    <jar destfile="${build.dir}/lib/sgs-client.jar">
+      <fileset dir="${build.dir}/classes/client"/>
+      <fileset dir="${build.dir}/classes/shared"/>
+      <manifest>
+        <attribute name="Class-Path"
+		   value="mina-core-1.1.jar
+			  slf4j-jdk14-1.2.jar
+			  slf4j-api-1.2.jar"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <!-- Builds the server JAR file -->
+  <target name="jar-server" depends="build-server, project-version"
+	  description="Builds server JAR files">
+    <mkdir dir="${build.dir}/lib"/>
+    <echo file="${build.dir}/classes/server/com/sun/sgs/sgs.version"
+	  message="${project.version}"/>
+    <jar destfile="${build.dir}/lib/sgs.jar">
+      <fileset dir="${build.dir}/classes/server"/>
+      <fileset dir="${build.dir}/classes/shared"/>
+      <manifest>
+        <attribute name="Main-Class" value="com.sun.sgs.impl.kernel.Kernel"/>
+        <attribute name="Class-Path"
+                   value="bdb/db.jar
+                          mina-core-1.1.jar
+                          slf4j-jdk14-1.2.jar
+			  slf4j-api-1.2.jar"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <!-- Sets properties for the project version -->
+  <target name="project-version"
+	  description="Sets properties for the project version">
+    <!-- Use the latest committed revision, the part after the colon -->
+    <exec outputproperty="project.revision"
+	  executable="svnversion"
+	  logError="true">
+      <arg line="-c"/>
+      <redirector>
+	<outputfilterchain>
+	  <tokenfilter>
+	    <containsregex pattern="[^:]*:?([^:]*)" replace="\1"/>
+	  </tokenfilter>
+	</outputfilterchain>
+      </redirector>
+    </exec>
+    <property name="project.version"
+	      value="${project.release}-r${project.revision}"/>
+    <echo message="${project.version}"/>
+  </target>
+
+  <!-- Checks Java coding style -->
+  <target name="checkstyle"
+	  depends="checkstyle-client, checkstyle-server, checkstyle-shared"
+	  description="Checks Java coding style">
+  </target>
+
+  <!-- Checks client Java coding style -->
+  <target name="checkstyle-client"
+	  depends="build-client,-checkstyle.init"
+	  description="Checks client Java coding style">
+    <checkstyle config="${neuromancer_checks.xml}"
+	        classpathref="client.classpath">
+      <fileset dir="src/client/j2se"/>
+    </checkstyle>
+  </target>
+
+  <!-- Checks server Java coding style -->
+  <target name="checkstyle-server"
+	  depends="build-server,-checkstyle.init"
+	  description="Checks server Java coding style">
+    <checkstyle config="${neuromancer_checks.xml}"
+		classpathref="server.classpath">
+      <fileset dir="src/server/j2se"/>
+    </checkstyle>
+  </target>
+
+  <!-- Checks shared Java coding style -->
+  <target name="checkstyle-shared"
+	  depends="-build-shared,-checkstyle.init"
+	  description="Checks shared Java coding style">
+    <checkstyle config="${neuromancer_checks.xml}"
+		classpathref="shared.classpath">
+      <fileset dir="src/shared/j2se"/>
+    </checkstyle>
+  </target>
+
+  <!-- Verify checkstyle.dir is set, calculate checkstyle.includes, and
+       build the checkjars target in checkstyle.dir. -->
+  <target name="-checkstyle.init">
+      <fail unless="checkstyle.dir"
+	    message="The checkstyle.dir property must be set to a directory containing the checkstyle subproject"/>
+      <ant dir="${checkstyle.dir}" target="checkjars" inheritAll="false"/>
+  </target>
+
+  <!-- Compile and run tests -->
+  <target name="test" depends="test-server"
+	  description="Compiles and runs tests"/>
+
+  <!-- Compile and run shared tests -->
+  <target name="test-shared" depends="-test-shared.classes"
+	  description="Compiles and runs shared tests">
+    <mkdir dir="${build.dir}/test"/>
+    <delete dir="${build.dir}/test/output"/>
+    <mkdir dir="${build.dir}/test/output"/>
+    <!-- XXX: We'd like to use forkmode="once" here, but that doesn't
+	 seem to work in Ant 1.6.1 -tjb@sun.com (01/13/2006)
+      -->
+    <junit fork="true"
+	   printsummary="on"
+	   showoutput="${test.showoutput}"
+	   tempdir="${build.dir}/test/output"
+	   failureproperty="tests.failed">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.io.tmpdir" file="${build.dir}/test/output"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/test/classes/shared"/>
+        <path refid="shared.classpath"/>
+      </classpath>
+      <syspropertyset>
+	<propertyref prefix="test."/>
+	<propertyref prefix="com.sun.sgs."/>
+      </syspropertyset>
+      <!-- XXX: This doesn't work in Ant 1.6.1,
+	   either. -tjb@sun.com (01/13/2006) -->
+      <!-- <assertions>
+	     <enable/>
+	   </assertions> -->
+      <formatter type="${test.formatter.type}"/>
+      <batchtest todir="${build.dir}/test/output">
+	<fileset dir="test/shared/j2se"
+	  includes="${test.include}"/>
+      </batchtest>
+    </junit>
+    <fail if="tests.failed" message="Some tests failed"/>
+  </target>
+
+  <!-- Compile and run server tests -->
+  <target name="test-server" depends="-test-server.classes"
+	  description="Compiles and runs server tests">
+    <mkdir dir="${build.dir}/test"/>
+    <delete dir="${build.dir}/test/output"/>
+    <mkdir dir="${build.dir}/test/output"/>
+    <!-- XXX: We'd like to use forkmode="once" here, but that doesn't
+	 seem to work in Ant 1.6.1 -tjb@sun.com (01/13/2006)
+      -->
+    <junit fork="true"
+	   printsummary="on"
+	   showoutput="${test.showoutput}"
+	   tempdir="${build.dir}/test/output"
+	   failureproperty="tests.failed">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.io.tmpdir" file="${build.dir}/test/output"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/test/classes/server"/>
+        <path refid="server.classpath"/>
+      </classpath>
+      <syspropertyset>
+	<propertyref prefix="test."/>
+	<propertyref prefix="com.sun.sgs."/>
+      </syspropertyset>
+      <!-- XXX: This doesn't work in Ant 1.6.1,
+	   either. -tjb@sun.com (01/13/2006) -->
+      <!-- <assertions>
+	     <enable/>
+	   </assertions> -->
+      <formatter type="${test.formatter.type}"/>
+      <batchtest todir="${build.dir}/test/output">
+	<fileset dir="test/server/j2se"
+	  includes="${test.include}"/>
+      </batchtest>
+    </junit>
+    <fail if="tests.failed" message="Some tests failed"/>
+  </target>
+
+  <!-- Compiles tests -->
+  <target name="-test-shared.classes" depends="build">
+    <mkdir dir="${build.dir}/test/classes/shared"/>
+    <depend srcdir="test/shared/j2se"
+	    destdir="${build.dir}/test/classes/shared"
+	    cache="${build.dir}/test/depend"
+	    closure="true"/>
+    <javac srcdir="test/shared/j2se"
+	   destdir="${build.dir}/test/classes/shared"
+	   includeAntRuntime="yes"
+	   debug="on"
+	   source="${javac.source}"
+	   classpathref="shared.classpath"
+	   includes="**/*.java">
+      <compilerarg value="${javac.compilerargs}"/>
+    </javac>
+  </target>
+
+  <target name="-test-server.classes" depends="build">
+    <mkdir dir="${build.dir}/test/classes/server"/>
+    <depend srcdir="test/server/j2se"
+	    destdir="${build.dir}/test/classes/server"
+	    cache="${build.dir}/test/depend"
+	    closure="true"/>
+    <javac srcdir="test/server/j2se"
+	   destdir="${build.dir}/test/classes/server"
+	   includeAntRuntime="yes"
+	   debug="on"
+	   source="${javac.source}"
+	   classpathref="server.classpath"
+	   includes="**/*.java">
+      <compilerarg value="${javac.compilerargs}"/>
+    </javac>
+  </target>
+
+  <target name="-test-client.classes" depends="build">
+    <mkdir dir="${build.dir}/test/classes/client"/>
+    <depend srcdir="test/client/j2se"
+	    destdir="${build.dir}/test/classes/client"
+	    cache="${build.dir}/test/depend"
+	    closure="true"/>
+    <javac srcdir="test/client/j2se"
+	   destdir="${build.dir}/test/classes/client"
+	   includeAntRuntime="yes"
+	   debug="on"
+	   source="${javac.source}"
+	   classpathref="client.classpath"
+	   includes="**/*.java">
+      <compilerarg value="${javac.compilerargs}"/>
+    </javac>
+  </target>
+
+  <!-- Run IO test server -->
+  <target name="io-test-server" depends="-test-shared.classes"
+          description="Runs the IO test server">
+    <java classname="com.sun.sgs.test.impl.io.ServerTest"
+          fork="true">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/test/classes/shared"/>
+        <path refid="shared.classpath"/>
+      </classpath>
+    </java>
+  </target>
+
+  <!-- Run IO test client -->
+  <target name="io-test-client" depends="-test-shared.classes"
+          description="Runs the IO test client">
+    <java classname="com.sun.sgs.test.impl.io.ClientTest"
+          fork="true">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/test/classes/shared"/>
+        <path refid="shared.classpath"/>
+      </classpath>
+    </java>
+  </target>
+
+  <!-- Run Client API test server -->
+  <target name="clientapi-test-server" depends="-test-client.classes"
+          description="Runs the Client API test server">
+    <java classname="com.sun.sgs.test.client.simple.SimpleServer"
+          fork="true">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/test/classes/client"/>
+        <path refid="client.classpath"/>
+      </classpath>
+    </java>
+  </target>
+
+  <!-- Run Client API test client -->
+  <target name="clientapi-test-client" depends="-test-client.classes"
+          description="Runs the Client API test client">
+    <java classname="com.sun.sgs.test.client.simple.ClientTest"
+          fork="true">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/test/classes/client"/>
+        <path refid="client.classpath"/>
+      </classpath>
+    </java>
+  </target>
+  
+  <!-- Run Client API test client GUI -->
+  <target name="clientapi-test-client-gui" depends="-test-client.classes"
+          description="Runs the Client API test client GUI">
+    <java classname="com.sun.sgs.test.client.simple.SimpleClientTestUI"
+          fork="true">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/test/classes/client"/>
+        <path refid="client.classpath"/>
+      </classpath>
+    </java>
+  </target>
+
+  <!-- Builds the example code -->
+  <target name="example-classes" depends="build"
+          description="Builds the example code">
+    <mkdir dir="${build.dir}/example/classes"/>
+    <depend srcdir="example"
+            destdir="${build.dir}/example/classes"
+	    cache="${build.dir}/example/depend"
+	    closure="true"/>
+    <javac destdir="${build.dir}/example/classes"
+	   debug="on"
+	   source="${javac.source}">
+      <src>
+        <dirset dir="example" includes="*/src"/>
+      </src>
+      <classpath>
+        <pathelement location="${build.dir}/classes/server"/>
+        <pathelement location="${build.dir}/classes/client"/>
+        <pathelement location="${build.dir}/classes/shared"/>
+      </classpath>
+      <compilerarg value="${javac.compilerargs}"/>
+    </javac>
+  </target>
+
+  <!-- Runs the example ChatApp (server) -->
+  <target name="example-chat-app" depends="example-classes"
+          description="Runs the example ChatApp (server)">
+    <mkdir dir="/tmp/ChatApp/dsdb"/>
+    <java classname="com.sun.sgs.impl.kernel.Kernel"
+          fork="true">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.library.path" file="${bdb.lib.dir}"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/example/classes"/>
+        <path refid="server.classpath"/>
+      </classpath>
+      <arg value="example/chat/ChatApp.properties"/>
+    </java>
+  </target>
+
+  <!-- Runs the example ChatClient -->
+  <target name="example-chat-client" depends="example-classes"
+          description="Runs the example ChatClient">
+    <java classname="com.sun.sgs.example.chat.client.ChatClient"
+          fork="true">
+      <jvmarg line="${test.jvm.args}"/>
+      <sysproperty key="java.util.logging.config.file"
+		   file="${test.logging}"/>
+      <classpath>
+        <pathelement location="${build.dir}/example/classes"/>
+        <path refid="client.classpath"/>
+      </classpath>
+    </java>
+  </target>
+
+  <!-- Builds tutorial jar file -->
+  <target name="jar-tutorial" depends="example-classes"
+          description="Builds tutorial jar file">
+    <mkdir dir="${build.dir}/example/tutorial"/>
+    <jar destfile="${build.dir}/example/tutorial/tutorial.jar">
+      <fileset dir="${build.dir}/example/classes"
+               includes="com/sun/sgs/tutorial/**"/>
+    </jar>
+  </target>
+
+  <!-- Creates the tutorial distribution -->
+  <target name="dist-tutorial" depends="jar-tutorial"
+          description="Creates the tutorial distribution">
+    <copy todir="${build.dir}/sgs/tutorial">
+      <fileset dir="example/tutorial" includes="*.properties"/>
+      <fileset file="build/example/tutorial/tutorial.jar"/>
+    </copy>
+    <copy todir="${build.dir}/sgs/tutorial/src">
+      <fileset dir="example/tutorial/src" includes="**/*.java"/>
+    </copy>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloChannels/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloEcho/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloLogger/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloPersistence/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloPersistence2/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloPersistence3/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloTimer/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloUser/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloUser2/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/HelloWorld/dsdb"/>
+    <mkdir dir="${build.dir}/sgs/tutorial/data/SwordWorld/dsdb"/>
+    <copy todir="${build.dir}/sgs/tutorial">
+      <fileset dir="doc"
+	       includes="ClientTutorial.pdf, ServerAppTutorial.pdf"/>
+    </copy>
+    <!-- TODO: generate and package javadoc -->
+  </target>
+
+</project>

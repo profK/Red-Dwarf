@@ -1,0 +1,181 @@
+<assembly>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <formats>
+    <format>zip</format>
+  </formats>
+  
+  <dependencySets>
+
+    <!-- Include the main sgs-server jar
+	 Strip out the version number to simplify usage -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server:jar</include>
+      </includes>
+      <outputDirectory>sgs-server-${sgs.version}/lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+      <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
+    </dependencySet>
+
+    <!-- Include the sgs-server source files -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server:jar:sources</include>
+      </includes>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+
+    <!-- Include the jar of sgs shared classes in the lib director -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-shared:jar</include>
+      </includes>
+      <outputDirectory>sgs-server-${sgs.version}/lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Include the sgs-shared source files -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-shared:jar:sources</include>
+      </includes>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+
+    <!-- Include the jar of sgs-server-api classes in the lib director -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server-api:jar</include>
+      </includes>
+      <outputDirectory>sgs-server-${sgs.version}/lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Include the sgs-server-api source files -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server-api:jar:sources</include>
+      </includes>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Unpack the tutorial component -->
+    <dependencySet>
+      <includes>       
+	<include>com.projectdarkstar.server:sgs-tutorial-server-dist:zip</include>
+      </includes>
+      <unpack>true</unpack>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+    
+    <!-- Unpack the server-api artifact of the sgs-javadoc module
+	 into the doc directory -->
+    <dependencySet>
+      <includes>
+	<include>com.projectdarkstar.server:sgs-server-javadoc:jar:api</include>
+      </includes>
+      <unpack>true</unpack>
+      <unpackOptions>
+	<excludes>
+	  <exclude>META-INF</exclude>
+	  <exclude>META-INF/*</exclude>
+	  <exclude>options</exclude>
+	</excludes>
+      </unpackOptions>
+      <outputDirectory>sgs-server-${sgs.version}/doc</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+    </dependencySet>
+  </dependencySets>
+  
+  
+  <fileSets>
+    
+    <!-- Include the main distribution license and readme files -->
+    <fileSet>
+      <directory>src/main/etc/sgs-server</directory>
+      <excludes>
+        <exclude>README</exclude>
+        <exclude>NOTICE.txt</exclude>
+        <exclude>NOTICE-gpl</exclude>
+        <exclude>sgs.sh</exclude>
+      </excludes>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+    </fileSet>
+
+    <!-- This is here just to get an empty bdb directory in lib -->
+    <fileSet>
+       <directory>${java.io.tmpdir}</directory>
+       <outputDirectory>sgs-server-${sgs.version}/lib/bdb</outputDirectory>
+       <excludes>
+           <exclude>**/*</exclude>
+        </excludes>
+    </fileSet>
+
+    <!-- Include all of the Berkeley DB binaries except for the Windows
+	 DLL -->
+    <fileSet>
+      <directory>${project.build.directory}/bdb-${bdb.version}</directory>
+      <outputDirectory>bdb-${bdb.version}</outputDirectory>
+      <excludes>
+	<exclude>win32-x86/libdb_java45.dll</exclude>
+      </excludes>
+    </fileSet>
+
+    <!-- Include the Windows DLL from the Berkeley DB binaries, and make
+	 it executable -->
+    <fileSet>
+      <directory>${project.build.directory}/bdb-${bdb.version}</directory>
+      <outputDirectory>bdb-${bdb.version}</outputDirectory>
+      <includes>
+	<include>win32-x86/libdb_java45.dll</include>
+      </includes>
+      <fileMode>755</fileMode>
+    </fileSet>
+
+  </fileSets>
+  
+
+  <files>
+    <!-- Filter README files to replace parameterized version numbers -->
+    <file>
+      <source>src/main/etc/README</source>
+      <outputDirectory>.</outputDirectory>
+      <filtered>true</filtered>
+      <fileMode>644</fileMode>
+    </file>
+    <file>
+      <source>src/main/etc/sgs-server/README</source>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <filtered>true</filtered>
+      <fileMode>644</fileMode>
+    </file>
+
+    <!-- Filter the NOTICE files -->
+    <file>
+      <source>src/main/etc/sgs-server/NOTICE.txt</source>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <filtered>true</filtered>
+      <fileMode>644</fileMode>
+    </file>
+    <file>
+      <source>src/main/etc/sgs-server/NOTICE-gpl</source>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <filtered>true</filtered>
+      <fileMode>644</fileMode>
+    </file>
+
+    <!-- This shouldn't be necessary but there's a bug in the Maven
+	 assembly plugin that doesn't preserve file permissions.
+	 This includes the bootstrapper with the execute bit set -->
+    <file>
+      <source>src/main/etc/sgs-server/sgs.sh</source>
+      <outputDirectory>sgs-server-${sgs.version}</outputDirectory>
+      <fileMode>755</fileMode>
+    </file>
+  </files>
+  
+</assembly>
